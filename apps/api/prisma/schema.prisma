@@ -1,0 +1,89 @@
+// StockFlow — multi-tenant SaaS inventory management
+// Database: PostgreSQL   ORM: Prisma
+//
+// Tenancy model: `Organization` is the tenant boundary. Every row that holds
+// customer data carries an `organizationId`, and every query in the service
+// layer is scoped by the organizationId derived from the authenticated JWT.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A tenant. Created during registration together with its first user.
+model Organization {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(255)
+
+  /// Fallback low-stock threshold applied to products that do not define
+  /// their own `lowStockThreshold`.
+  defaultLowStockThreshold Int @default(10) @map("default_low_stock_threshold")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  users    User[]
+  products Product[]
+
+  @@index([createdAt])
+  @@map("organizations")
+}
+
+model User {
+  id    String @id @default(uuid()) @db.Uuid
+  name  String @db.VarChar(255)
+  email String @unique @db.VarChar(255)
+
+  /// bcrypt hash — never a plaintext password.
+  password String @db.VarChar(255)
+
+  organizationId String @db.Uuid @map("organization_id")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // Deleting a tenant removes its users.
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Product {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid @map("organization_id")
+
+  name        String  @db.VarChar(255)
+  sku         String  @db.VarChar(100)
+  description String? @db.Text
+
+  quantityOnHand Int @default(0) @map("quantity_on_hand")
+
+  /// Monetary values use PostgreSQL `numeric` — never floating point.
+  costPrice    Decimal @default(0) @db.Decimal(12, 2) @map("cost_price")
+  sellingPrice Decimal @default(0) @db.Decimal(12, 2) @map("selling_price")
+
+  /// Null means "inherit the organization's defaultLowStockThreshold".
+  lowStockThreshold Int? @db.Integer @map("low_stock_threshold")
+
+  /// Optional free-text note from the most recent stock adjustment.
+  lastStockNote String? @db.VarChar(500) @map("last_stock_note")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // A product cannot outlive its tenant.
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // SKUs are unique per tenant, so two organizations may use the same SKU.
+  @@unique([organizationId, sku])
+  @@index([organizationId])
+  @@index([organizationId, name])
+  @@index([organizationId, quantityOnHand])
+  @@index([organizationId, createdAt])
+  @@map("products")
+}
