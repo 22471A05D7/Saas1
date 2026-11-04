@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # StockFlow
 
 A multi-tenant SaaS inventory management system. Each organization is a fully
@@ -646,3 +647,6 @@ frontend routes.
 - Out of scope by design: multi-warehouse, variants, categories, images,
   external integrations, orders, purchase orders, suppliers, CSV import,
   billing, email notifications, and stock movement history.
+=======
+# Saas1
+>>>>>>> 1501788dcfd827bfac04666403299b7d2c794bdf
