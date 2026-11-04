@@ -3,7 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "description": "StockFlow - multi-tenant SaaS inventory management",
-  "workspaces": ["apps/api", "apps/web"],
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
   "scripts": {
     "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "npm run dev --workspace=apps/api",
@@ -22,5 +25,10 @@
   "devDependencies": {
     "concurrently": "^9.1.2"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@types/node": "^26.6.6"
+  }
 }
